@@ -7,7 +7,7 @@ import psycopg2
 from sqlalchemy.orm import Session
 from psycopg2.extras import RealDictCursor
 import time
-from . import models
+from . import models,schemas
 from .database import engine,get_db 
 
 
@@ -15,10 +15,7 @@ models.Base.metadata.create_all(bind = engine)
 
 app = FastAPI()
 
-class Post(BaseModel):
-    title : str
-    content : str
-    published : bool = True #defalt value
+
  
 while True:
 
@@ -53,12 +50,6 @@ def find_Post_By_Index(id):
 def health():
     return {"status": "connected"}
 
-@app.get("/sqlalchemy")
-def test_posts(db: Session = Depends(get_db)):
-
-    posts = db.query(models.Post).all()
-    return {"data": posts }
-
 @app.get("/posts")
 def get_post(db: Session = Depends(get_db)):
     # cursor.execute(""" SELECT * FROM posts;""")
@@ -68,7 +59,7 @@ def get_post(db: Session = Depends(get_db)):
 
 
 @app.post("/createPosts",status_code= status.HTTP_201_CREATED)
-def create_post(post: Post,db: Session = Depends(get_db) ):
+def create_post(post: schemas.PostCreate,db: Session = Depends(get_db) ):
     # cursor.execute("""INSERT INTO posts (title,content,published) VALUES(%s,%s,%s) RETURNING * """,(post.title,post.content,post.published))
     # new_post = cursor.fetchone()
 
@@ -112,7 +103,7 @@ def delete_post(id :int,db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.put("/posts/{id}")
-def update_Post(id : int, updated_post : Post,db: Session = Depends(get_db)):
+def update_Post(id : int, updated_post : schemas.PostCreate,db: Session = Depends(get_db)):
     # cursor.execute(""" UPDATE posts SET title = %s,content = %s,published = %s  WHERE id = %s RETURNING *""",(post.title,post.content,post.published,(str(id))))
     # updated_Post = cursor.fetchone()
     # conn.commit()
