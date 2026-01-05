@@ -2,6 +2,7 @@ from fastapi import FastAPI,Response,HTTPException,status,Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional,List
+from passlib.context import CryptContext
 import random
 import psycopg2
 from sqlalchemy.orm import Session
@@ -10,6 +11,13 @@ import time
 from . import models,schemas
 from .database import engine,get_db 
 
+pwd_context = CryptContext(schemes =["bcrypt"],deprecated = "auto")
+
+def hash_password(password: str) -> str:
+    # bcrypt supports max 72 bytes
+    password_bytes = password.encode("utf-8")
+    safe_password = password_bytes[:72].decode("utf-8", errors="ignore")
+    return pwd_context.hash(safe_password)
 
 models.Base.metadata.create_all(bind = engine)
 
@@ -120,6 +128,12 @@ def update_Post(id : int, updated_post : schemas.PostCreate,db: Session = Depend
 
 @app.post("/users",status_code= status.HTTP_201_CREATED,response_model=schemas.UserOut)
 def create_user(user: schemas.UserCreate,db : Session = Depends(get_db)):
+
+    #hash the password - user.password
+    # hashed_pwd = pwd_context.hash(user.password)
+    # user.password = hashed_pwd
+    user.password = hash_password(user.password)
+
     new_user = models.User(**user.dict())
     db.add(new_user)
     db.commit()
