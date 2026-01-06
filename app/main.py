@@ -2,22 +2,16 @@ from fastapi import FastAPI,Response,HTTPException,status,Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional,List
-from passlib.context import CryptContext
+
 import random
 import psycopg2
 from sqlalchemy.orm import Session
 from psycopg2.extras import RealDictCursor
 import time
-from . import models,schemas
+from . import models,schemas,utils
 from .database import engine,get_db 
 
-pwd_context = CryptContext(schemes =["bcrypt"],deprecated = "auto")
 
-def hash_password(password: str) -> str:
-    # bcrypt supports max 72 bytes
-    password_bytes = password.encode("utf-8")
-    safe_password = password_bytes[:72].decode("utf-8", errors="ignore")
-    return pwd_context.hash(safe_password)
 
 models.Base.metadata.create_all(bind = engine)
 
@@ -132,7 +126,7 @@ def create_user(user: schemas.UserCreate,db : Session = Depends(get_db)):
     #hash the password - user.password
     # hashed_pwd = pwd_context.hash(user.password)
     # user.password = hashed_pwd
-    user.password = hash_password(user.password)
+    user.password = utils.hash_password(user.password)
 
     new_user = models.User(**user.dict())
     db.add(new_user)
@@ -141,3 +135,12 @@ def create_user(user: schemas.UserCreate,db : Session = Depends(get_db)):
 
     return new_user
 
+
+@app.get("/users/{id}",status_code = status.HTTP_404_NOT_FOUND,response_model=schemas.UserOut)
+def get_user(id:int,db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == id).first()
+
+    if not user:
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,detail ={ "message" : f"User with a given id {id} is found"} )
+    
+    return user 
