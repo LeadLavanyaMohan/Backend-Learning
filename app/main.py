@@ -10,6 +10,7 @@ from psycopg2.extras import RealDictCursor
 import time
 from . import models,schemas,utils
 from .database import engine,get_db 
+from .routers import post,user
 
 
 
@@ -48,6 +49,8 @@ def find_Post_By_Index(id):
             return index
 
 
+app.include_router(post.router)
+app.include_router(user.router)
 @app.get("/")
 def health():
     return {"status": "connected"}
